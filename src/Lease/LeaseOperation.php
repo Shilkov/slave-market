@@ -2,43 +2,39 @@
 
 namespace SlaveMarket\Lease;
 
-use SlaveMarket\MastersRepository;
-use SlaveMarket\SlavesRepository;
+use SlaveMarket\Lease\Factory\ContractFactory;
+use SlaveMarket\Lease\Factory\leaseRequestDtoFactory;
+use SlaveMarket\Lease\Validator\ContractValidatorsHandler;
 
 /**
  * Операция "Арендовать раба"
  *
  * @package SlaveMarket\Lease
  */
-class LeaseOperation
-{
+class LeaseOperation {
     /**
-     * @var LeaseContractsRepository
+     * @var ContractValidatorsHandler
      */
-    protected $contractsRepository;
-
+    private $validatorsHandler;
     /**
-     * @var MastersRepository
+     * @var leaseRequestDtoFactory
      */
-    protected $mastersRepository;
-
+    private $leaseRequestDtoFactory;
     /**
-     * @var SlavesRepository
+     * @var ContractFactory
      */
-    protected $slavesRepository;
+    private $contractFactory;
 
     /**
      * LeaseOperation constructor.
-     *
-     * @param LeaseContractsRepository $contractsRepo
-     * @param MastersRepository $mastersRepo
-     * @param SlavesRepository $slavesRepo
+     * @param leaseRequestDtoFactory $leaseRequestDtoFactory
+     * @param ContractValidatorsHandler $validatorsHandler
+     * @param ContractFactory $contractFactory
      */
-    public function __construct(LeaseContractsRepository $contractsRepo, MastersRepository $mastersRepo, SlavesRepository $slavesRepo)
-    {
-        $this->contractsRepository = $contractsRepo;
-        $this->mastersRepository   = $mastersRepo;
-        $this->slavesRepository    = $slavesRepo;
+    public function __construct(ContractValidatorsHandler $validatorsHandler, leaseRequestDtoFactory $leaseRequestDtoFactory, ContractFactory $contractFactory) {
+        $this->validatorsHandler = $validatorsHandler;
+        $this->leaseRequestDtoFactory = $leaseRequestDtoFactory;
+        $this->contractFactory = $contractFactory;
     }
 
     /**
@@ -47,8 +43,20 @@ class LeaseOperation
      * @param LeaseRequest $request
      * @return LeaseResponse
      */
-    public function run(LeaseRequest $request): LeaseResponse
-    {
-        // Your code here :-)
+    public function run(LeaseRequest $request): LeaseResponse {
+        $requestDto = $this->leaseRequestDtoFactory->createFromLeaseRequest($request);
+        $this->validatorsHandler->validate($requestDto);
+
+        $leaseResponse = new LeaseResponse();
+
+        if($this->validatorsHandler->isValid()) {
+            $leaseResponse->setLeaseContract($this->contractFactory->createFromDto($requestDto->contractDto));
+        } else {
+            foreach($this->validatorsHandler->getErrors() as $error) {
+                $leaseResponse->addError($error);
+            }
+        }
+
+        return $leaseResponse;
     }
 }
