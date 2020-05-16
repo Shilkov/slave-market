@@ -107,9 +107,87 @@
 Спроектировать структуру базы данных и оптимизировать для работы следующих выборок:
 
 + Получить минимальную, максимальную и среднюю стоимость всех рабов весом более 60 кг.
+<pre><code>
+select min(price_buy), max(price_buy), avg(price_buy)
+from slave
+where weight > 60;
+</code></pre>
+ 
 + Выбрать категории, в которых больше 10 рабов.
+<pre><code>
+select *
+from category
+where
+    id in (
+        select category_id
+        from slave_category
+        group by category_id HAVING COUNT(*) > 10
+    );
+</code></pre>
+    
 + Выбрать категорию с наибольшей суммарной стоимостью рабов.
+<pre><code>
+select *
+from category
+where id = (
+    select category_id
+    from (
+             select category_id, sum(price_buy) as summ_price
+             from slave
+                      right join slave_category sc on slave.id = sc.slave_id
+             group by category_id
+             order by summ_price DESC
+             limit 1
+         ) sum_price
+)
+</code></pre>
 + Выбрать категории, в которых мужчин больше чем женщин.
+<pre><code>
+from category
+where id in (
+    select category_id
+    from (
+             select count(male) male, count(female) female, category_id
+             from (
+                      SELECT CASE WHEN sex = 1 THEN 1 END as female,
+                             CASE WHEN sex = 0 THEN 1 END as male,
+                             sc.category_id
+                      FROM slave
+                               right join slave_category sc on slave.id = sc.slave_id
+                  ) gender
+             group by category_id
+         ) count_gender_in_catigory
+    where count_gender_in_catigory.female > count_gender_in_catigory.male
+)
+</code></pre>
 + Количество рабов в категории "Для кухни" (включая все вложенные категории).
-
+<pre><code>
+select count(*)
+from (
+         select distinct slave_id
+         from slave_category
+         where category_id in (
+             select id
+             from category
+             where 
+                nested_left >= 1
+                and nested_right <= 6
+         )
+     ) slave_in_category
+</code></pre>
+`примечание 1 и 6 это узды в нестедсете для катигории в которой мы ищем.`
+<pre><code>
+select count(*)
+from (
+         select distinct slave_id
+         from slave_category
+         where category_id in (
+             select category.id
+             from category
+                      inner join category as parent on parent.title = 'cat 1'
+             where category.nested_left >= parent.nested_left
+               and category.nested_right <= parent.nested_right
+         )
+     ) slave_in_category;
+</code></pre>
 Можно использовать любую реляционную СУБД, например, MySQL или PostgreSQL.

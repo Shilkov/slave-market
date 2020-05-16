@@ -12,7 +12,7 @@ use Doctrine\Migrations\AbstractMigration;
  */
 final class Version20200516055147 extends AbstractMigration {
     public function getDescription(): string {
-        return 'Создание таблицы рабов ';
+        return 'Создание таблицы рабов и категорий';
     }
 
     public function up(Schema $schema): void {
@@ -76,6 +76,7 @@ CREATE TABLE slave (
  id INTEGER PRIMARY KEY DEFAULT nextval('slave_id_seq'),
  name VARCHAR(40) NOT NULL,
  sex INTEGER NOT NULL,
+ age INTEGER NOT NULL,
  weight INTEGER NOT NULL,
  skin_color integer NOT NULL,
  homeland VARCHAR(40) NOT NULL,
